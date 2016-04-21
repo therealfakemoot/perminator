@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -17,26 +18,46 @@ func getCwd() (dir string) {
 	return dir
 }
 
-func getPatterns() {
-
-	if os.Getenv("MASSPERMS_CONF") {
-		configPath := filepath.Join(os.Getenv("MASSPERMS_CONF"), ".massperms.rc")
-	} else {
-		configPath := filepath.Join(currentUser.HomeDir, ".massperms.rc")
-		currentUser, err := user.Current()
-		if err != nil {
-			log.Fatal(err)
-		}
+func getConfigPath() (configPath string) {
+	currentUser, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
 	}
+	configPath = filepath.Join(currentUser.HomeDir, ".massperms.rc")
+	return configPath
+
+}
+
+func LoadConfig(configPath string) (conf []byte) {
 
 	conf, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(conf)
+	return conf
+}
+
+func buildConfigPath() {
 }
 
 func main() {
-	fmt.Println(getCwd())
+
+	configPathPtr := flag.String("config", getConfigPath(), "Path to your massperms patterns file.")
+	targetDirPtr := flag.String("target", getCwd(), "Path to directory to apply patterns to.")
+
+	flag.Parse()
+
+	log.Print("CLI FLAG: config:", *configPathPtr)
+	log.Print("CLI FLAG: target:", *targetDirPtr)
+
+	var file_list []string
+	file_list, err := filepath.Glob(*targetDirPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//log.Print("Matched files", file_list)
+	for _, file := range file_list {
+		fmt.Println("Matched File:", file)
+	}
 }
