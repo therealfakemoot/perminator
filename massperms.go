@@ -37,9 +37,6 @@ func LoadConfig(configPath string) (conf []byte) {
 	return conf
 }
 
-func buildConfigPath() {
-}
-
 func main() {
 
 	logger.Out = os.Stderr
