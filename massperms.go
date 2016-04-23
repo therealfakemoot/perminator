@@ -2,12 +2,43 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	logrus "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
+
+type permsRule struct {
+	pattern     string
+	fstype      string
+	permissions int
+}
+
+func (p permsRule) String() string {
+	//out_strings := []string{p.pattern, p.fstype, string(p.permissions)}
+	//return strings.Join(out_strings, ":")
+	out_string := p.pattern + ":" + p.fstype + ":" + strconv.Itoa(p.permissions)
+	return out_string
+}
+
+type permsRuleSet struct {
+	rules []permsRule
+}
+
+func (p permsRuleSet) String() string {
+	out_string := ""
+	for _, rule := range p.rules {
+		out_string += "|"
+		out_string += rule.String()
+	}
+	out_string += "|"
+
+	return out_string
+}
 
 var logger = logrus.New()
 
@@ -28,13 +59,53 @@ func getConfigPath() (configPath string) {
 	return configPath
 }
 
-func LoadConfig(configPath string) (conf []byte) {
+func loadConfig(configPath string) permsRuleSet {
 	conf, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		logger.Error(err)
 	}
 
-	return conf
+	rawConfLines := strings.Split(string(conf), "\n")
+	confLines := rawConfLines[:len(rawConfLines)-1]
+
+	permsRules := make([]permsRule, 0, len(confLines))
+
+	for index, line := range confLines {
+		var pattern string
+		var fstype string
+		var permissions int
+
+		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &permissions)
+
+		permsRules = append(permsRules, permsRule{pattern, fstype, permissions})
+
+		logger.WithFields(logrus.Fields{
+			"rulePriority": index,
+			"pattern":      pattern,
+			"fstype":       fstype,
+			"permissions":  permissions,
+		}).Debug("Rule loaded.")
+	}
+
+	ruleSet := permsRuleSet{permsRules}
+
+	logger.WithFields(logrus.Fields{
+		"ruleCount":  len(ruleSet.rules),
+		"configPath": configPath,
+	}).Debug("Configuration file loaded.")
+
+	logger.WithFields(logrus.Fields{
+		"fullRules": ruleSet.String(),
+	}).Debug("Full parsed ruleset.")
+
+	return ruleSet
+
+}
+
+func globWalk(pattern string, dir string) []string {
+
+	return []string{"whatever"}
+
 }
 
 func main() {
@@ -57,15 +128,10 @@ func main() {
 	logger.WithFields(logrus.Fields{
 		"configPath": *configPathPtr,
 		"targetPath": *targetDirPtr,
-	}).Debug("massperms begins")
+	}).Info("massperms begins")
 
-	var file_list []string
-	file_list, err := filepath.Glob(*targetDirPtr)
-	if err != nil {
-		logger.Error(err)
-	}
-
+	ruleSet := loadConfig(*configPathPtr)
 	logger.WithFields(logrus.Fields{
-		"fileCount": len(file_list),
-	}).Info("Totle files affected.")
+		"ruleSetLength": len(ruleSet.rules),
+	}).Info("Ruleset processed.")
 }
