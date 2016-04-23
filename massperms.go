@@ -2,18 +2,19 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	logrus "github.com/Sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 )
 
+var logger = logrus.New()
+
 func getCwd() (dir string) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
 	return dir
 }
@@ -21,18 +22,16 @@ func getCwd() (dir string) {
 func getConfigPath() (configPath string) {
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
 	configPath = filepath.Join(currentUser.HomeDir, ".massperms.rc")
 	return configPath
-
 }
 
 func LoadConfig(configPath string) (conf []byte) {
-
 	conf, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
 
 	return conf
@@ -43,21 +42,33 @@ func buildConfigPath() {
 
 func main() {
 
+	logger.Out = os.Stderr
+	//logger.SetFormatter(&logrus.TextFormatter{})
+
 	configPathPtr := flag.String("config", getConfigPath(), "Path to your massperms patterns file.")
 	targetDirPtr := flag.String("target", getCwd(), "Path to directory to apply patterns to.")
+	debugLevelPtr := flag.Bool("debug", false, "Debug mode.")
 
 	flag.Parse()
 
-	log.Print("CLI FLAG: config:", *configPathPtr)
-	log.Print("CLI FLAG: target:", *targetDirPtr)
+	if *debugLevelPtr {
+		logger.Level = logrus.DebugLevel
+	} else {
+		logger.Level = logrus.InfoLevel
+	}
+
+	logger.WithFields(logrus.Fields{
+		"configPath": *configPathPtr,
+		"targetPath": *targetDirPtr,
+	}).Debug("massperms begins")
 
 	var file_list []string
 	file_list, err := filepath.Glob(*targetDirPtr)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
-	//log.Print("Matched files", file_list)
-	for _, file := range file_list {
-		fmt.Println("Matched File:", file)
-	}
+
+	logger.WithFields(logrus.Fields{
+		"fileCount": len(file_list),
+	}).Info("Totle files affected.")
 }
