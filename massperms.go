@@ -1,9 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	logrus "github.com/Sirupsen/logrus"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -113,24 +113,26 @@ func main() {
 	logger.Out = os.Stderr
 	//logger.SetFormatter(&logrus.TextFormatter{})
 
-	configPathPtr := flag.String("config", getConfigPath(), "Path to your massperms patterns file.")
-	targetDirPtr := flag.String("target", getCwd(), "Path to directory to apply patterns to.")
-	debugLevelPtr := flag.Bool("debug", false, "Debug mode.")
+	var (
+		configPath = kingpin.Flag("config", "Configuration file path.").Short('c').Default(getConfigPath()).ExistingFile()
+		targetDir  = kingpin.Flag("target", "Target directory.").Short('d').Default(getCwd()).ExistingDir()
+		debugMode  = kingpin.Flag("debug", "Enable debugging output.").Bool()
+	)
 
-	flag.Parse()
+	kingpin.Parse()
 
-	if *debugLevelPtr {
+	if *debugMode {
 		logger.Level = logrus.DebugLevel
 	} else {
 		logger.Level = logrus.InfoLevel
 	}
 
 	logger.WithFields(logrus.Fields{
-		"configPath": *configPathPtr,
-		"targetPath": *targetDirPtr,
+		"configPath": *configPath,
+		"targetPath": *targetDir,
 	}).Info("massperms begins")
 
-	ruleSet := loadConfig(*configPathPtr)
+	ruleSet := loadConfig(*configPath)
 	logger.WithFields(logrus.Fields{
 		"ruleSetLength": len(ruleSet.rules),
 	}).Info("Ruleset processed.")
