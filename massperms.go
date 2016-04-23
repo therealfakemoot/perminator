@@ -150,6 +150,9 @@ func main() {
 	}).Info("massperms begins")
 
 	ruleSet := loadConfig(*configPath)
+
+	applyRules(*targetDir, ruleSet)
+
 	logger.WithFields(logrus.Fields{
 		"ruleSetLength": len(ruleSet.rules),
 	}).Info("Ruleset processed.")
