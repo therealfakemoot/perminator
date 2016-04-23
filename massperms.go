@@ -67,7 +67,7 @@ func loadConfig(configPath string) permsRuleSet {
 	rawConfLines := strings.Split(string(conf), "\n")
 	confLines := rawConfLines[:len(rawConfLines)-1]
 
-	permsRules := make([]permsRule, len(confLines))
+	permsRules := make([]permsRule, 0, len(confLines))
 
 	for index, line := range confLines {
 		ruleParts := strings.Split(line, " ")
