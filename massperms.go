@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -20,7 +21,7 @@ type permsRule struct {
 func (p permsRule) String() string {
 	//out_strings := []string{p.pattern, p.fstype, string(p.permissions)}
 	//return strings.Join(out_strings, ":")
-	out_string := p.pattern + ":" + p.fstype + ":" + string(p.permissions)
+	out_string := p.pattern + ":" + p.fstype + ":" + strconv.Itoa(p.permissions)
 	return out_string
 }
 
