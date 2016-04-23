@@ -102,16 +102,33 @@ func loadConfig(configPath string) permsRuleSet {
 
 }
 
-func globWalk(pattern string, dir string) []string {
+func buildWalkFunc(ruleSet permsRuleSet) func(string, os.FileInfo, error) error {
+	return func(path string, info os.FileInfo, err error) error {
+		for _, rule := range ruleSet.rules {
+			match, _ := filepath.Match(rule.pattern, path)
+			if match {
+				if logger.Level != logrus.DebugLevel {
+					os.Chmod(path, os.FileMode(rule.permissions))
+				}
+				logger.WithFields(logrus.Fields{
+					"matchPath":   path,
+					"rule":        rule,
+					"permissions": strconv.Itoa(rule.permissions),
+				}).Info("File modified.")
+			}
+		}
+		return err
+	}
+}
 
-	return []string{"whatever"}
-
+func applyRules(targetDir string, ruleSet permsRuleSet) {
+	walkfunc := buildWalkFunc(ruleSet)
+	filepath.Walk(targetDir, walkfunc)
 }
 
 func main() {
 
 	logger.Out = os.Stderr
-	//logger.SetFormatter(&logrus.TextFormatter{})
 
 	var (
 		configPath = kingpin.Flag("config", "Configuration file path.").Short('c').Default(getConfigPath()).ExistingFile()
@@ -133,6 +150,9 @@ func main() {
 	}).Info("massperms begins")
 
 	ruleSet := loadConfig(*configPath)
+
+	applyRules(*targetDir, ruleSet)
+
 	logger.WithFields(logrus.Fields{
 		"ruleSetLength": len(ruleSet.rules),
 	}).Info("Ruleset processed.")
