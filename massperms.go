@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	logrus "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -70,13 +70,11 @@ func loadConfig(configPath string) permsRuleSet {
 	permsRules := make([]permsRule, 0, len(confLines))
 
 	for index, line := range confLines {
-		ruleParts := strings.Split(line, " ")
-		pattern := ruleParts[0]
-		fstype := string(ruleParts[1][0])
-		permissions, err := strconv.Atoi(ruleParts[1][1:])
-		if err != nil {
-			logger.Error(err)
-		}
+		var pattern string
+		var fstype string
+		var permissions int
+
+		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &permissions)
 
 		permsRules = append(permsRules, permsRule{pattern, fstype, permissions})
 
