@@ -28,7 +28,7 @@ Usage of ./massperms:
 
 ##TODO:
 
-[x] Configurable logging.
-[ ] Dry run for testing patterns.
-[ ] Profiling
-[ ] Tests?
+- [x] Configurable logging.
+- [ ] Dry run for testing patterns.
+- [ ] Profiling
+- [ ] Tests?
