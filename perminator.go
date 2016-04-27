@@ -55,7 +55,7 @@ func getConfigPath() (configPath string) {
 	if err != nil {
 		logger.Error(err)
 	}
-	configPath = filepath.Join(currentUser.HomeDir, ".massperms.rc")
+	configPath = filepath.Join(currentUser.HomeDir, ".perminator.rc")
 	return configPath
 }
 
@@ -147,7 +147,7 @@ func main() {
 	logger.WithFields(logrus.Fields{
 		"configPath": *configPath,
 		"targetPath": *targetDir,
-	}).Info("massperms begins")
+	}).Info("perminator begins")
 
 	ruleSet := loadConfig(*configPath)
 
