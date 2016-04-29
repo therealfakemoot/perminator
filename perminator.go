@@ -15,13 +15,13 @@ import (
 type permsRule struct {
 	pattern     string
 	fstype      string
-	permissions int
+	permissions os.FileMode
 }
 
 func (p permsRule) String() string {
 	//out_strings := []string{p.pattern, p.fstype, string(p.permissions)}
 	//return strings.Join(out_strings, ":")
-	out_string := p.pattern + ":" + p.fstype + ":" + strconv.Itoa(p.permissions)
+	out_string := p.pattern + ":" + p.fstype + ":" + p.permissions.String()
 	return out_string
 }
 
@@ -59,7 +59,7 @@ func getConfigPath() (configPath string) {
 	return configPath
 }
 
-func loadConfig(configPath string) permsRuleSet {
+func loadConfig(configPath string) (permsRuleSet, err) {
 	conf, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		logger.Error(err)
@@ -73,19 +73,35 @@ func loadConfig(configPath string) permsRuleSet {
 	for index, line := range confLines {
 		var pattern string
 		var fstype string
-		var permissions int
+		var permissions string
+		var fileMode os.FileMode
 
-		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &permissions)
+		fmt.Sscanf(line, "%s %1s%s", &pattern, &fstype, &permissions)
 
-		permsRules = append(permsRules, permsRule{pattern, fstype, permissions})
+		if fstype != "a" || fstype != "d" || fstype != "f" {
+			logger.WithFields(logrus.Fields{
+				"line":   index,
+				"fstype": fstype,
+			}).Info("Invalid filesystem type value.")
+		}
 
-		logger.WithFields(logrus.Fields{
-			"rulePriority": index,
-			"pattern":      pattern,
-			"fstype":       fstype,
-			"permissions":  permissions,
-		}).Debug("Rule loaded.")
+		tempMode, err := strconv.ParseInt(permissions, 0, 32)
+		fileMode, err = os.FileMode(tempMode)
+		if err != nil || (tempMode < 0 || tempMode > 777) {
+			logger.WithFields(logrus.Fields{
+				"line":        index,
+				"permsString": permissions,
+			}).Info("Invalid file permissions value.")
+		}
+		permsRules = append(permsRules, permsRule{pattern, fstype, fileMode})
 	}
+
+	logger.WithFields(logrus.Fields{
+		"rulePriority": index,
+		"pattern":      pattern,
+		"fstype":       fstype,
+		"permissions":  permissions,
+	}).Debug("Rule loaded.")
 
 	ruleSet := permsRuleSet{permsRules}
 
@@ -108,8 +124,8 @@ func buildWalkFunc(ruleSet permsRuleSet) func(string, os.FileInfo, error) error 
 			match, _ := filepath.Match(rule.pattern, path)
 			if match {
 				if logger.Level != logrus.DebugLevel {
-					os.Chmod(path, os.FileMode(rule.permissions))
 				}
+				os.Chmod(path, os.FileMode(rule.permissions))
 				logger.WithFields(logrus.Fields{
 					"matchPath":   path,
 					"rule":        rule,
@@ -149,7 +165,10 @@ func main() {
 		"targetPath": *targetDir,
 	}).Info("perminator begins")
 
-	ruleSet := loadConfig(*configPath)
+	ruleSet, err := loadConfig(*configPath)
+	if err != nil {
+		logger.Info("Error parsing config file in strict mode.")
+	}
 
 	applyRules(*targetDir, ruleSet)
 
