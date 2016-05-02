@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -109,9 +110,18 @@ func loadConfig(configPath string) (parsedConfig ruleSet, err error) {
 	for index, line := range confLines {
 		var pattern string
 		var fstype string
+		var perms string
 		var permissions os.FileMode
 
-		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &permissions)
+		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &perms)
+
+		permsInt, _ := strconv.ParseUint(perms, 10, 32)
+		logger.WithFields(logrus.Fields{
+			"permsInt": permsInt,
+		}).Info("Permissions integer.")
+		if err != nil {
+		}
+		permissions = os.FileMode(int32(permsInt))
 
 		switch fstype {
 		case "a", "d", "f":
