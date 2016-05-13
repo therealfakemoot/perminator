@@ -48,27 +48,35 @@ type Perminator struct {
 func (p Perminator) Apply(path string, info os.FileInfo, err error) error {
 	for i := len(p.rules) - 1; i >= 0; i-- {
 		rule := p.rules[i]
-		pattern := getCwd() + "/" + rule.pattern
-
-		absPath, err := filepath.Abs(path)
-		if err != nil {
-			logger.Error(err)
-		}
 
 		logger.WithFields(logrus.Fields{
-			"pattern":  pattern,
-			"filePath": absPath,
+			"pattern":  rule.pattern,
+			"filePath": path,
 		}).Debug("Matching.")
-		match, _ := filepath.Match(pattern, absPath)
+		match, _ := filepath.Match(rule.pattern, path)
 
 		if match == true {
 
-			os.Chmod(path, os.FileMode(rule.permissions))
-			logger.WithFields(logrus.Fields{
-				"pattern":     pattern,
-				"filePath":    absPath,
-				"permissions": (int(rule.permissions.Perm())),
-			}).Info("File modified.")
+			isDir, err := isDirectory(path)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			if (isDir && rule.fstype == "d") ||
+				(!isDir && rule.fstype == "f") ||
+				(rule.fstype == "a") {
+				os.Chmod(path, os.FileMode(rule.permissions))
+
+				logger.WithFields(logrus.Fields{
+					"pattern":     rule.pattern,
+					"filePath":    path,
+					"permissions": (int(rule.permissions.Perm())),
+				}).Info("File modified.")
+			} else {
+				logger.WithFields(logrus.Fields{
+					"filePath": path,
+				}).Debug("File not modified.")
+			}
 
 			break
 
@@ -79,6 +87,14 @@ func (p Perminator) Apply(path string, info os.FileInfo, err error) error {
 }
 
 var logger = logrus.New()
+
+func isDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		logger.Error(err)
+	}
+	return fileInfo.IsDir(), err
+}
 
 func getCwd() (dir string) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -113,7 +129,7 @@ func loadConfig(configPath string) (parsedConfig ruleSet, err error) {
 		var perms string
 		var permissions os.FileMode
 
-		fmt.Sscanf(line, "%s %1s%d", &pattern, &fstype, &perms)
+		fmt.Sscanf(line, "%s %1s%s", &pattern, &fstype, &perms)
 
 		permsInt, _ := strconv.ParseUint(perms, 10, 32)
 		logger.WithFields(logrus.Fields{
