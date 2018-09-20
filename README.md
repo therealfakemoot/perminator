@@ -8,13 +8,14 @@ The underlying library call uses the globbing syntax for [filepath.Match](https:
 The configuration file will follow this syntax:
 
 ```
-*cache*/ f777
-/home/*/etc/* d400
-bar/foo* a650
+*cache*/ f0777
+/home/*/etc/* d1400
+bar/foo* a0650
 ```
 
-The first item shall be a glob pattern as above. The second item shall be an `f`, `a`, or `d` followed by a three digit integer representing the filemode to set on each matched object. `f` matches files, `d` matches directories, and `a` matches all. Furthermore, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the bottom of the .perminatorrc.
+The first item shall be a glob pattern as above. The second item shall be an `f`, `a`, or `d` followed by an octal integer representing the filemode to set on each matched object. `f` matches files, `d` matches directories, and `a` matches all. Furthermore, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the bottom of the .perminatorrc.
 
+It's important to note that the paths being matched against the same type of path (relative or absolute) that is defined as the targetDir. By default, this is an absolute path to your current directory. If you pass a relative path to `perminator --target` paths will be relative. Keep this in mind when creating your patterns.
 #Invocation
 ```
 perminator
