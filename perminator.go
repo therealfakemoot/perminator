@@ -1,218 +1,93 @@
 package main
 
 import (
-	"fmt"
-	logrus "github.com/Sirupsen/logrus"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
-	"io/ioutil"
+	"flag"
+	// "fmt"
+	"log"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
 )
 
-type rule struct {
-	pattern     string
-	fstype      string
-	permissions os.FileMode
+var (
+	targetDir  string
+	configPath string
+	debugMode  bool
+)
+
+type Rule struct {
+	Pattern string
+	Type    string
+	Perm    os.FileMode
 }
 
-func (p rule) String() string {
-	//out_strings := []string{p.pattern, p.fstype, string(p.permissions)}
-	//return strings.Join(out_strings, ":")
-	out_string := p.pattern + ":" + p.fstype + ":" + fmt.Sprintf("%d", p.permissions)
-	return out_string
-}
+type RuleSet []Rule
 
-type ruleSet struct {
-	rules []rule
-}
-
-func (p ruleSet) String() string {
-	out_string := ""
-	for _, rule := range p.rules {
-		out_string += "|"
-		out_string += rule.String()
+func Debug(v ...interface{}) {
+	if debugMode {
+		log.Print(v...)
 	}
-	out_string += "|"
-
-	return out_string
 }
 
-type Perminator struct {
-	rules     []rule
-	targetDir string
-}
-
-func (p Perminator) Apply(path string, info os.FileInfo, err error) error {
-	for i := len(p.rules) - 1; i >= 0; i-- {
-		rule := p.rules[i]
-
-		logger.WithFields(logrus.Fields{
-			"pattern":  rule.pattern,
-			"filePath": path,
-		}).Debug("Matching.")
-		match, _ := filepath.Match(rule.pattern, path)
-
-		if match == true {
-
-			isDir, err := isDirectory(path)
-			if err != nil {
-				logger.Error(err)
-				return err
-			}
-			if (isDir && rule.fstype == "d") ||
-				(!isDir && rule.fstype == "f") ||
-				(rule.fstype == "a") {
-				os.Chmod(path, os.FileMode(rule.permissions))
-
-				logger.WithFields(logrus.Fields{
-					"pattern":     rule.pattern,
-					"filePath":    path,
-					"permissions": (int(rule.permissions.Perm())),
-				}).Info("File modified.")
-			} else {
-				logger.WithFields(logrus.Fields{
-					"filePath": path,
-				}).Debug("File not modified.")
-			}
-
-			break
-
-		}
+func Debugf(fmt string, v ...interface{}) {
+	if debugMode {
+		log.Printf(fmt, v...)
 	}
-	logger.Info("No rules applied.")
-	return err
 }
 
-var logger = logrus.New()
-
-func isDirectory(path string) (bool, error) {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		logger.Error(err)
-	}
-	return fileInfo.IsDir(), err
-}
-
-func getCwd() (dir string) {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		logger.Error(err)
-	}
-	return dir
-}
-
-func getConfigPath() (configPath string) {
+func homeDir() string {
 	currentUser, err := user.Current()
 	if err != nil {
-		logger.Error(err)
+		log.Panic(err)
 	}
-	configPath = filepath.Join(currentUser.HomeDir, ".perminator.rc")
-	return configPath
+	return currentUser.HomeDir
 }
 
-func loadConfig(configPath string) (parsedConfig ruleSet, err error) {
-	conf, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		logger.Error(err)
+func loadRules(path string) RuleSet {
+	var rs RuleSet
+
+	return rs
+}
+
+func parseRule(s string) Rule {
+	var r Rule
+
+	return r
+}
+
+func match(p string, r Rule) bool {
+	return false
+}
+
+func Apply(rules RuleSet) filepath.WalkFunc {
+	f := func(path string, info os.FileInfo, err error) error {
+		for _, r := range rules {
+			if match(path, r) {
+			}
+		}
+		return nil
 	}
 
-	rawConfLines := strings.Split(string(conf), "\n")
-	confLines := rawConfLines[:len(rawConfLines)-1]
-	rules := make([]rule, 0, len(confLines))
-
-	for index, line := range confLines {
-		var pattern string
-		var fstype string
-		var perms string
-		var permissions os.FileMode
-
-		fmt.Sscanf(line, "%s %1s%s", &pattern, &fstype, &perms)
-
-		permsInt, _ := strconv.ParseUint(perms, 10, 32)
-		logger.WithFields(logrus.Fields{
-			"permsInt": permsInt,
-		}).Info("Permissions integer.")
-		if err != nil {
-		}
-		permissions = os.FileMode(int32(permsInt))
-
-		switch fstype {
-		case "a", "d", "f":
-			_ = ""
-		default:
-			logger.WithFields(logrus.Fields{
-				"raw":    line,
-				"line":   index,
-				"fstype": fstype,
-			}).Info("Invalid filesystem type value.")
-		}
-
-		if err != nil || (permissions < 0 || permissions > 777) {
-			logger.WithFields(logrus.Fields{
-				"line":        index,
-				"permsString": permissions,
-			}).Info("Invalid file permissions value.")
-		}
-		rules = append(rules, rule{pattern, fstype, permissions})
-
-		logger.WithFields(logrus.Fields{
-			"rulePriority": index,
-			"pattern":      pattern,
-			"fstype":       fstype,
-			"permissions":  permissions,
-		}).Debug("Rule loaded.")
-	}
-
-	ruleSet := ruleSet{rules}
-
-	logger.WithFields(logrus.Fields{
-		"ruleCount":  len(ruleSet.rules),
-		"configPath": configPath,
-	}).Debug("Configuration file loaded.")
-
-	logger.WithFields(logrus.Fields{
-		"fullRules": ruleSet.String(),
-	}).Debug("Full parsed ruleset.")
-
-	return ruleSet, err
-
+	return f
 }
 
 func main() {
+	Debug("Perminator start.")
 
-	logger.Out = os.Stderr
+	flag.StringVar(&targetDir, "targetDir", homeDir(), "Target directory.")
+	flag.StringVar(&configPath, "configPath", path.Join(homeDir(), ".perminator.rc"), "Config file location.")
+	flag.BoolVar(&debugMode, "verbose", false, "Verbose logging mode.")
 
-	var (
-		configPath = kingpin.Flag("config", "Configuration file path.").Short('c').Default(getConfigPath()).ExistingFile()
-		targetDir  = kingpin.Flag("target", "Target directory.").Short('d').Default(getCwd()).ExistingDir()
-		debugMode  = kingpin.Flag("debug", "Enable debugging output.").Bool()
-	)
+	flag.Parse()
 
-	kingpin.Parse()
+	rs := loadRules(configPath)
 
-	if *debugMode {
-		logger.Level = logrus.DebugLevel
-	} else {
-		logger.Level = logrus.InfoLevel
-	}
+	Debugf("Loaded ruleset: %+v\n", rs)
 
-	logger.WithFields(logrus.Fields{
-		"configPath": *configPath,
-		"targetPath": *targetDir,
-	}).Info("perminator begins")
-
-	ruleSet, err := loadConfig(*configPath)
+	err := filepath.Walk(targetDir, Apply(rs))
 	if err != nil {
-		logger.Info("Error parsing config file.")
+		log.Panic(err)
 	}
-	P := Perminator{ruleSet.rules, *targetDir}
-
-	filepath.Walk(*targetDir, P.Apply)
-
-	logger.WithFields(logrus.Fields{
-		"ruleSetLength": len(ruleSet.rules),
-	}).Info("Ruleset processed.")
+	Debug("Perminator exit.")
 }
