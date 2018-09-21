@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
-	// "fmt"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -19,7 +22,7 @@ var (
 type Rule struct {
 	Pattern string
 	Type    string
-	Perm    os.FileMode
+	Mode    os.FileMode
 }
 
 type RuleSet []Rule
@@ -47,11 +50,38 @@ func homeDir() string {
 func loadRules(path string) RuleSet {
 	var rs RuleSet
 
+	conf, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for _, line := range strings.Split(string(conf), "\n") {
+		rs = append(rs, parseRule(line))
+	}
+
 	return rs
 }
 
 func parseRule(s string) Rule {
-	var r Rule
+	var (
+		pattern string
+		fstype  string
+		rawMode string
+	)
+
+	fmt.Sscanf(s, "%s %1s%s", &pattern, &fstype, &rawMode)
+	i, err := strconv.ParseUint(rawMode, 8, 32)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	r := Rule{
+		Pattern: pattern,
+		Type:    fstype,
+		Mode:    os.FileMode(uint32(i)),
+	}
 
 	return r
 }
@@ -62,8 +92,10 @@ func match(p string, r Rule) bool {
 
 func Apply(rules RuleSet) filepath.WalkFunc {
 	f := func(path string, info os.FileInfo, err error) error {
+		log.Println(path)
 		for _, r := range rules {
 			if match(path, r) {
+				os.Chmod(path, r.Mode)
 			}
 		}
 		return nil
@@ -85,7 +117,12 @@ func main() {
 
 	Debugf("Loaded ruleset: %+v\n", rs)
 
-	err := filepath.Walk(targetDir, Apply(rs))
+	path, err := filepath.Abs(targetDir)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = filepath.Walk(path, Apply(rs))
 	if err != nil {
 		log.Panic(err)
 	}
