@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+)
+
+var (
+	ErrBadFileType = errors.New("invalid filetype in rule")
+	ErrBadPerms    = errors.New("invalid file permissions in rule")
+	ErrBadPattern  = errors.New("invalid file globbing pattern in rule")
 )
 
 var (
@@ -47,7 +54,7 @@ func homeDir() string {
 	return currentUser.HomeDir
 }
 
-func loadRules(path string) RuleSet {
+func loadRules(path string) (RuleSet, error) {
 	var rs RuleSet
 
 	conf, err := ioutil.ReadFile(path)
@@ -57,33 +64,42 @@ func loadRules(path string) RuleSet {
 	}
 
 	for _, line := range strings.Split(string(conf), "\n") {
-		rs = append(rs, parseRule(line))
+		r, err := parseRule(line)
+		if err != nil {
+			return rs, err
+		}
+		rs = append(rs, r)
 	}
 
-	return rs
+	return rs, nil
 }
 
-func parseRule(s string) Rule {
+func parseRule(s string) (Rule, error) {
 	var (
 		pattern string
 		fstype  string
 		rawMode string
+		r       Rule
 	)
 
-	fmt.Sscanf(s, "%s %1s%s", &pattern, &fstype, &rawMode)
+	_, err := fmt.Sscanf(s, "%s %1s%s", &pattern, &fstype, &rawMode)
+	if err != nil {
+		return r, err
+	}
+
 	i, err := strconv.ParseUint(rawMode, 8, 32)
 
 	if err != nil {
-		log.Panic(err)
+		return r, err
 	}
 
-	r := Rule{
+	r = Rule{
 		Pattern: pattern,
 		Type:    fstype,
 		Mode:    os.FileMode(uint32(i)),
 	}
 
-	return r
+	return r, nil
 }
 
 func match(p string, r Rule) bool {
@@ -113,7 +129,11 @@ func main() {
 
 	flag.Parse()
 
-	rs := loadRules(configPath)
+	rs, err := loadRules(configPath)
+
+	if err != nil {
+		log.Panicf("error loading ruleset: %s", err)
+	}
 
 	Debugf("Loaded ruleset: %+v\n", rs)
 
