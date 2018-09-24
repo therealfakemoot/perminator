@@ -87,10 +87,17 @@ func parseRule(s string) (Rule, error) {
 		return r, err
 	}
 
+	switch fstype {
+	case "d", "f", "a":
+	default:
+		return r, ErrBadFileType
+
+	}
+
 	i, err := strconv.ParseUint(rawMode, 8, 32)
 
 	if err != nil {
-		return r, err
+		return r, ErrBadPerms
 	}
 
 	r = Rule{
