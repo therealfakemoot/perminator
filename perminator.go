@@ -109,16 +109,21 @@ func parseRule(s string) (Rule, error) {
 	return r, nil
 }
 
-func match(p string, r Rule) bool {
-	return false
+func match(pattern, name string) (bool, error) {
+	return filepath.Match(pattern, name)
 }
 
 func Apply(rules RuleSet) filepath.WalkFunc {
-	f := func(path string, info os.FileInfo, err error) error {
-		log.Println(path)
+	f := func(fname string, info os.FileInfo, err error) error {
+		log.Println(fname)
 		for _, r := range rules {
-			if match(path, r) {
-				os.Chmod(path, r.Mode)
+			pattern := path.Join(targetDir, r.Pattern)
+			m, err := match(pattern, fname)
+			if err != nil {
+				return err
+			}
+			if m {
+				os.Chmod(fname, r.Mode)
 			}
 		}
 		return nil
