@@ -1,8 +1,37 @@
 package main
 
 import (
+	"path"
 	"testing"
 )
+
+func TestMatches(t *testing.T) {
+	t.Run("valid matches", func(t *testing.T) {
+		targetDir := "/home/moot"
+		cases := []struct {
+			path    string
+			pattern string
+			match   bool
+		}{
+			{"/home/moot/public_html/indx.php", "public_html/*", true},
+		}
+
+		for _, tt := range cases {
+			pattern := path.Join(targetDir, tt.pattern)
+			m, err := match(pattern, tt.path)
+
+			if err != nil {
+				t.Logf("bad pattern: %s", pattern)
+				t.Fail()
+			}
+
+			if m != tt.match {
+				t.Logf("expected match: %s=%s>%t", pattern, tt.path, m)
+				t.Fail()
+			}
+		}
+	})
+}
 
 func TestParseRule(t *testing.T) {
 	t.Run("valid rules", func(t *testing.T) {
