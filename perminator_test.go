@@ -6,7 +6,7 @@ import (
 )
 
 func TestMatches(t *testing.T) {
-	t.Run("valid matches", func(t *testing.T) {
+	t.Run("non-error matches", func(t *testing.T) {
 		targetDir := "/home/moot"
 		cases := []struct {
 			path    string
@@ -14,6 +14,8 @@ func TestMatches(t *testing.T) {
 			match   bool
 		}{
 			{"/home/moot/public_html/indx.php", "public_html/*", true},
+			{"/home/moot/public_html/indx.php", "www/*", false},
+			{"/home/moot/.local/bin/go", "*/bin/*", true},
 		}
 
 		for _, tt := range cases {
@@ -27,6 +29,26 @@ func TestMatches(t *testing.T) {
 
 			if m != tt.match {
 				t.Logf("expected match: %s=%s>%t", pattern, tt.path, m)
+				t.Fail()
+			}
+		}
+	})
+	t.Run("error matches", func(t *testing.T) {
+		targetDir := "/home/moot"
+		cases := []struct {
+			path    string
+			pattern string
+		}{
+			// character classes must be non-empty. currently the only example of a malformed match pattern I can find
+			{"/home/moot/public_html/indx.php", "public_html/[]"},
+		}
+
+		for _, tt := range cases {
+			pattern := path.Join(targetDir, tt.pattern)
+			_, err := match(pattern, tt.path)
+
+			if err == nil {
+				t.Logf("expected bad pattern: %s", pattern)
 				t.Fail()
 			}
 		}
