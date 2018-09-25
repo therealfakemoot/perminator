@@ -34,22 +34,10 @@ type Rule struct {
 
 type RuleSet []Rule
 
-func Debug(v ...interface{}) {
-	if debugMode {
-		log.Print(v...)
-	}
-}
-
-func Debugf(fmt string, v ...interface{}) {
-	if debugMode {
-		log.Printf(fmt, v...)
-	}
-}
-
 func homeDir() string {
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	return currentUser.HomeDir
 }
@@ -60,7 +48,7 @@ func loadRules(path string) (RuleSet, error) {
 	conf, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		log.Panic(err)
+		return rs, err
 	}
 
 	for _, line := range strings.Split(string(conf), "\n") {
@@ -133,7 +121,7 @@ func Apply(rules RuleSet) filepath.WalkFunc {
 }
 
 func main() {
-	Debug("Perminator start.")
+	log.Print("Perminator start.")
 
 	flag.StringVar(&targetDir, "targetDir", homeDir(), "Target directory.")
 	flag.StringVar(&configPath, "configPath", path.Join(homeDir(), ".perminator.rc"), "Config file location.")
@@ -144,19 +132,20 @@ func main() {
 	rs, err := loadRules(configPath)
 
 	if err != nil {
-		log.Panicf("error loading ruleset: %s", err)
+		log.Fatalf("error loading ruleset: %s", err)
 	}
 
-	Debugf("Loaded ruleset: %+v\n", rs)
+	log.Printf("Loaded ruleset: %+v\n", rs)
 
 	path, err := filepath.Abs(targetDir)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	err = filepath.Walk(path, Apply(rs))
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
-	Debug("Perminator exit.")
+
+	log.Print("Perminator exit.")
 }
