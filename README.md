@@ -1,11 +1,12 @@
 # Overview
 perminator is written to be a performant, utilitarian application. Given a list of file glob patterns and a directory, apply file modes to matching files according to the provided glob patterns.
 
-# Globs
-The underlying library call uses the globbing syntax for [filepath.Match](https://golang.org/pkg/path/filepath/#Match).
 
 # Configuration
 The configuration file will follow this syntax:
+
+## Globs
+The underlying library call uses the globbing syntax for [filepath.Match](https://golang.org/pkg/path/filepath/#Match).
 
 ```
 *cache*/ f0777
@@ -37,10 +38,3 @@ Flags:
                Target directory.
       --debug  Enable debugging output.
 ```
-
-## TODO:
-
-- [x] Configurable logging.
-- [ ] Dry run for testing patterns.
-- [ ] Profiling
-- [ ] Tests?
