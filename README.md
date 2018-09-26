@@ -10,7 +10,7 @@ The underlying library call uses the globbing syntax for
 
 The first item shall be a glob pattern as specified [here](https://golang.org/pkg/path/filepath/#Match).
 
-The second item shall be an `f`, `a`, or `d` followed by an octal integer representing the filemode to set on each matched object:
+The second item shall be an `f`, `a`, or `d`:
 
 | Key | File type |
 | --- | --------- |
@@ -18,7 +18,9 @@ The second item shall be an `f`, `a`, or `d` followed by an octal integer repres
 | d   | directories |
 | a   | all file types |
 
-Furthermore, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the top of the config file.
+The file type directive is immediately followed by a 4 digit octal number reperesenting the [file mode](https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation) desired for matching files. [This](http://permissions-calculator.org/) is a helpful utility to calculate desired values.
+
+Finally, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the top of the config file.
 
 Example:
 
