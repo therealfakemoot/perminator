@@ -48,7 +48,7 @@ func loadRules(path string) (RuleSet, error) {
 	conf, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		log.Print("Error loading config file")
+		log.Print("error loading config file")
 		return rs, err
 	}
 
@@ -112,16 +112,21 @@ func match(pattern, name string) (bool, error) {
 
 func Apply(rules RuleSet) filepath.WalkFunc {
 	f := func(fname string, info os.FileInfo, err error) error {
-		log.Printf("Walking over %s", fname)
+		log.Printf("walking over %s", fname)
 		for _, r := range rules {
 			pattern := path.Join(targetDir, r.Pattern)
+			log.Printf("matching against pattern: %s", pattern)
 			m, err := match(pattern, fname)
 			if err != nil {
 				return err
 			}
 			if m {
-				log.Printf("Updating permissions for %s: %s", fname, r.Mode)
-				os.Chmod(fname, r.Mode)
+				log.Printf("updating permissions for %s: %s", fname, r.Mode)
+				err := os.Chmod(fname, r.Mode)
+				if err != nil {
+					log.Printf("unable to modify %s: %s", fname, err)
+					return err
+				}
 			}
 		}
 		return nil
@@ -131,7 +136,8 @@ func Apply(rules RuleSet) filepath.WalkFunc {
 }
 
 func main() {
-	log.Print("Perminator start.")
+	var err error
+	log.Print("perminator start.")
 
 	flag.StringVar(&targetDir, "targetDir", homeDir(), "Target directory.")
 	flag.StringVar(&configPath, "configPath", path.Join(homeDir(), ".perminator.rc"), "Config file location.")
@@ -139,13 +145,19 @@ func main() {
 
 	flag.Parse()
 
+	targetDir, err = filepath.Abs(targetDir)
+
+	if err != nil {
+		log.Fatalf("could not render absolute target directory: %s", err)
+	}
+
 	rs, err := loadRules(configPath)
 
 	if err != nil {
 		log.Fatalf("error loading ruleset: %s", err)
 	}
 
-	log.Printf("Loaded ruleset: %+v\n", rs)
+	log.Printf("loaded ruleset: %+v\n", rs)
 
 	path, err := filepath.Abs(targetDir)
 	if err != nil {
@@ -157,5 +169,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Print("Perminator exit.")
+	log.Print("perminator exit.")
 }
