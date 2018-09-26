@@ -112,7 +112,7 @@ func match(pattern, name string) (bool, error) {
 
 func Apply(rules RuleSet) filepath.WalkFunc {
 	f := func(fname string, info os.FileInfo, err error) error {
-		log.Println(fname)
+		log.Printf("Walking over %s", fname)
 		for _, r := range rules {
 			pattern := path.Join(targetDir, r.Pattern)
 			m, err := match(pattern, fname)
@@ -120,6 +120,7 @@ func Apply(rules RuleSet) filepath.WalkFunc {
 				return err
 			}
 			if m {
+				log.Printf("Updating permissions for %s: %s", fname, r.Mode)
 				os.Chmod(fname, r.Mode)
 			}
 		}
