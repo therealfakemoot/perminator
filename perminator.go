@@ -48,13 +48,22 @@ func loadRules(path string) (RuleSet, error) {
 	conf, err := ioutil.ReadFile(path)
 
 	if err != nil {
+		log.Print("Error loading config file")
 		return rs, err
 	}
 
+	lines := strings.Split(string(conf), "\n")
+
+	log.Printf("raw config: %q", string(conf))
+	log.Printf("config lines: %+v", lines)
 	for _, line := range strings.Split(string(conf), "\n") {
+		if line == "" {
+			continue
+		}
 		r, err := parseRule(line)
 		if err != nil {
-			return rs, err
+			log.Printf("bad rule encountered, %q: %s", line, err)
+			continue
 		}
 		rs = append(rs, r)
 	}
