@@ -5,8 +5,22 @@ perminator is written to be a performant, utilitarian application. Given a list 
 # Configuration
 The configuration file will follow this syntax:
 
-## Globs
-The underlying library call uses the globbing syntax for [filepath.Match](https://golang.org/pkg/path/filepath/#Match).
+## Patterns
+The underlying library call uses the globbing syntax for
+
+The first item shall be a glob pattern as specified [here](https://golang.org/pkg/path/filepath/#Match).
+
+The second item shall be an `f`, `a`, or `d` followed by an octal integer representing the filemode to set on each matched object:
+
+| Key | File type |
+| --- | --------- |
+| f   | regular files |
+| d   | directories |
+| a   | all file types |
+
+Furthermore, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the top of the config file.
+
+Example:
 
 ```
 *cache*/ f0777
@@ -14,8 +28,7 @@ The underlying library call uses the globbing syntax for [filepath.Match](https:
 bar/foo* a0650
 ```
 
-The first item shall be a glob pattern as above. The second item shall be an `f`, `a`, or `d` followed by an octal integer representing the filemode to set on each matched object. `f` matches files, `d` matches directories, and `a` matches all. Furthermore, rules are applied in the order they are loaded from the configuration. Higher priority or more specific rules should be placed closer to the bottom of the .perminatorrc.
-
+## Caveats
 Please note that all configuration directives are relative to the absolute version of the target path. For example, if `-targetDir = foo/` the absolute targetDir is `/path/to/the/targetDir/`. Given a rule `bar/*`, the resulting match pattern will be `/path/to/the/targetDir/bar/*`.
 
 This can lead to unexpected behavior if your rule includes a given target directory. For example, a rule `bar/* d0655` and a `-targetDir = bar/` produces a match pattern of `/path/to/bar/bar/*`. If you wish for every target under `targetDir` to match, simply prefix the pattern with `*`: `* d0655` or `*/bin f0755`.
