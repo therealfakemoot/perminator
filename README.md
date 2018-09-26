@@ -36,20 +36,20 @@ Please note that all configuration directives are relative to the absolute versi
 This can lead to unexpected behavior if your rule includes a given target directory. For example, a rule `bar/* d0655` and a `-targetDir = bar/` produces a match pattern of `/path/to/bar/bar/*`. If you wish for every target under `targetDir` to match, simply prefix the pattern with `*`: `* d0655` or `*/bin f0755`.
 
 # Invocation
+
 ```
 perminator
 ```
+
 `perminator` without any arguments defaults to looking in the current user's home dir for a configuration file and uses the current working directory for applying the permissions patterns.
 
 ```
-perminator --help
-usage: perminator [<flags>]
-
+perminator -h
 Flags:
-      --help   Show context-sensitive help (also try --help-long and --help-man).
-  -c, --config=/home/ndumas5/.perminator.rc
-               Configuration file path.
-  -d, --target=/home/ndumas5/work/perminator
-               Target directory.
-      --debug  Enable debugging output.
+  -configPath string
+        Config file location. (default "/home/moot/.perminator.rc")
+  -targetDir string
+        Target directory. (default "/home/moot")
+  -verbose
+        Verbose logging mode.
 ```
