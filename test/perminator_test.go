@@ -1,9 +1,44 @@
-package main
+package test
 
 import (
 	"path"
 	"testing"
+
+	p "github.com/therealfakemoot/perminator/src"
 )
+
+func BenchmarkMatch(b *testing.B) {
+	dir := "/home/user/really/long/path/with/lots/of/dirs"
+	pat := "/home/user/really/long/path/*/dirs"
+	b.Run("simple match", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			p.Match(pat, dir)
+		}
+	})
+	b.Run("no match", func(b *testing.B) {
+		dir := "/home/user/really/long/path/with/lots/of/dirs"
+		pat := "/home/otheruser/really/long/path/*/dirs"
+		for i := 0; i < b.N; i++ {
+			p.Match(pat, dir)
+		}
+	})
+}
+
+func BenchmarkParse(b *testing.B) {
+	r := "bin/* f0655"
+	b.Run("single rule", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = p.ParseRule(r)
+		}
+	})
+
+	b.Run("parse error", func(b *testing.B) {
+		r := "bin/* x0655"
+		for i := 0; i < b.N; i++ {
+			_, _ = p.ParseRule(r)
+		}
+	})
+}
 
 func TestMatches(t *testing.T) {
 	t.Run("non-error matches", func(t *testing.T) {
@@ -20,7 +55,7 @@ func TestMatches(t *testing.T) {
 
 		for _, tt := range cases {
 			pattern := path.Join(targetDir, tt.pattern)
-			m, err := match(pattern, tt.path)
+			m, err := p.Match(pattern, tt.path)
 
 			if err != nil {
 				t.Logf("bad pattern: %s", pattern)
@@ -45,7 +80,7 @@ func TestMatches(t *testing.T) {
 
 		for _, tt := range cases {
 			pattern := path.Join(targetDir, tt.pattern)
-			_, err := match(pattern, tt.path)
+			_, err := p.Match(pattern, tt.path)
 
 			if err == nil {
 				t.Logf("expected bad pattern: %s", pattern)
@@ -59,17 +94,17 @@ func TestParseRule(t *testing.T) {
 	t.Run("valid rules", func(t *testing.T) {
 		cases := []struct {
 			in  string
-			out Rule
+			out p.Rule
 		}{
-			{"*/bin f0655", Rule{Pattern: "*/bin", Type: "f", Mode: 0655}},
-			{"*public_html/* d0644", Rule{Pattern: "*public_html/*", Type: "d", Mode: 0644}},
+			{"*/bin f0655", p.Rule{Pattern: "*/bin", Type: "f", Mode: 0655}},
+			{"*public_html/* d0644", p.Rule{Pattern: "*public_html/*", Type: "d", Mode: 0644}},
 		}
 
 		for _, tt := range cases {
-			r, err := parseRule(tt.in)
+			r, err := p.ParseRule(tt.in)
 
 			if err != nil {
-				t.Logf("parseRule threw error: %s", err)
+				t.Logf("ParseRule threw error: %s", err)
 				t.Fail()
 			}
 
@@ -86,12 +121,12 @@ func TestParseRule(t *testing.T) {
 			in  string
 			out error
 		}{
-			{"*/bin x0655", ErrBadFileType},
-			{"*public_html/* d0999", ErrBadPerms},
+			{"*/bin x0655", p.ErrBadFileType},
+			{"*public_html/* d0999", p.ErrBadPerms},
 		}
 
 		for _, tt := range cases {
-			_, err := parseRule(tt.in)
+			_, err := p.ParseRule(tt.in)
 
 			if err != tt.out {
 				t.Logf("expected error: %s", tt.out)
