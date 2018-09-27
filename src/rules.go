@@ -9,14 +9,17 @@ import (
 	"strings"
 )
 
+// Rule describes a glob pattern and file permissions to apply to matching files.
 type Rule struct {
 	Pattern string
 	Type    string
 	Mode    os.FileMode
 }
 
+// RuleSet is a sequence of rules.
 type RuleSet []Rule
 
+// LoadRules opens a file and consumes all available rules from it.
 func LoadRules(path string) (RuleSet, error) {
 	var rs RuleSet
 
@@ -46,6 +49,7 @@ func LoadRules(path string) (RuleSet, error) {
 	return rs, nil
 }
 
+// ParseRule accepts a raw Rule string and returns a Rule.
 func ParseRule(s string) (Rule, error) {
 	var (
 		pattern string
