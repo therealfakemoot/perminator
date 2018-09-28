@@ -1,6 +1,7 @@
 package test
 
 import (
+	"os"
 	"path"
 	"testing"
 
@@ -9,17 +10,28 @@ import (
 
 func BenchmarkMatch(b *testing.B) {
 	dir := "/home/user/really/long/path/with/lots/of/dirs"
-	pat := "/home/user/really/long/path/*/dirs"
+	r := p.Rule{
+		Pattern: "/home/user/really/long/path/*/dirs",
+		Type:    "d",
+		Mode:    os.FileMode(0777),
+	}
+
+	fi := FileInfoMock{name: "", isDir: true}
 	b.Run("simple match", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			p.Match(pat, dir)
+			p.Match(r, dir, fi)
 		}
 	})
 	b.Run("no match", func(b *testing.B) {
-		dir := "/home/user/really/long/path/with/lots/of/dirs"
-		pat := "/home/otheruser/really/long/path/*/dirs"
+		r := p.Rule{
+			Pattern: "/home/otheruser/really/long/path/*/dirs",
+			Type:    "d",
+			Mode:    os.FileMode(0777),
+		}
+
+		fi := FileInfoMock{name: "", isDir: true}
 		for i := 0; i < b.N; i++ {
-			p.Match(pat, dir)
+			p.Match(r, dir, fi)
 		}
 	})
 }
@@ -41,6 +53,7 @@ func BenchmarkParse(b *testing.B) {
 }
 
 func TestMatches(t *testing.T) {
+	fi := FileInfoMock{name: "", isDir: true}
 	t.Run("non-error matches", func(t *testing.T) {
 		targetDir := "/home/moot"
 		cases := []struct {
@@ -55,7 +68,11 @@ func TestMatches(t *testing.T) {
 
 		for _, tt := range cases {
 			pattern := path.Join(targetDir, tt.pattern)
-			m, err := p.Match(pattern, tt.path)
+			m, err := p.Match(p.Rule{
+				Pattern: pattern,
+				Type:    "a",
+				Mode:    os.FileMode(0777),
+			}, tt.path, fi)
 
 			if err != nil {
 				t.Logf("bad pattern: %s", pattern)
@@ -80,7 +97,11 @@ func TestMatches(t *testing.T) {
 
 		for _, tt := range cases {
 			pattern := path.Join(targetDir, tt.pattern)
-			_, err := p.Match(pattern, tt.path)
+			_, err := p.Match(p.Rule{
+				Pattern: pattern,
+				Type:    "a",
+				Mode:    os.FileMode(0777),
+			}, tt.path, fi)
 
 			if err == nil {
 				t.Logf("expected bad pattern: %s", pattern)
