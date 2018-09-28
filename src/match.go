@@ -8,8 +8,22 @@ import (
 )
 
 // Match probably doesn't need to exist. All it does is call filepath.Match
-func Match(pattern, name string) (bool, error) {
-	return filepath.Match(pattern, name)
+func Match(r Rule, name string, info os.FileInfo) (bool, error) {
+	m, err := filepath.Match(r.Pattern, name)
+
+	if err != nil {
+		return false, err
+	}
+
+	switch r.Type {
+	case "a":
+		return (true && m), err
+	case "f":
+		return (!info.IsDir() && m), err
+	case "d":
+		return (info.IsDir() && m), err
+	}
+	return false, nil
 }
 
 // Apply is a HOF that creates a filepath.WalkFunc that applies the provided ruleset to a target directory.
@@ -19,7 +33,7 @@ func Apply(rules RuleSet, targetDir string) filepath.WalkFunc {
 		for _, r := range rules {
 			pattern := path.Join(targetDir, r.Pattern)
 			log.Printf("matching against pattern: %s", pattern)
-			m, err := Match(pattern, fname)
+			m, err := Match(r, fname, info)
 			if err != nil {
 				return err
 			}
