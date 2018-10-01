@@ -50,6 +50,4 @@ Flags:
         Config file location. (default "/home/moot/.perminator.rc")
   -targetDir string
         Target directory. (default "/home/moot")
-  -verbose
-        Verbose logging mode.
 ```
