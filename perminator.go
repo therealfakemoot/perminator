@@ -13,7 +13,6 @@ import (
 var (
 	targetDir  string
 	configPath string
-	debugMode  bool
 )
 
 func homeDir() string {
@@ -26,11 +25,10 @@ func homeDir() string {
 
 func main() {
 	var err error
-	log.Print("perminator start.")
+	log.Print("perminator start")
 
 	flag.StringVar(&targetDir, "targetDir", homeDir(), "Target directory.")
-	flag.StringVar(&configPath, "configPath", path.Join(homeDir(), ".perminator.rc"), "Config file location.")
-	flag.BoolVar(&debugMode, "verbose", false, "Verbose logging mode.")
+	flag.StringVar(&configPath, "configPath", path.Join(homeDir(), ".perminator.conf"), "Config file location")
 
 	flag.Parse()
 
@@ -58,5 +56,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Print("perminator exit.")
+	log.Print("perminator exit")
 }
