@@ -41,7 +41,7 @@ This can lead to unexpected behavior if your rule includes a given target direct
 perminator
 ```
 
-`perminator` without any arguments defaults to looking in the current user's home dir for a configuration file and uses the current working directory for applying the permissions patterns.
+`perminator` without any arguments defaults to looking in the current user's home dir for a configuration file and uses the user's home directory as the target directory.
 
 ```
 perminator -h
