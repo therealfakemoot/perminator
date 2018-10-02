@@ -6,12 +6,12 @@ import (
 )
 
 type FileInfoMock struct {
-	name  string
-	isDir bool
+	FName string
+	Dir   bool
 }
 
 func (fi FileInfoMock) Name() string {
-	return fi.name
+	return fi.FName
 }
 
 func (fi FileInfoMock) Size() int64 {
@@ -27,7 +27,7 @@ func (fi FileInfoMock) ModTime() time.Time {
 }
 
 func (fi FileInfoMock) IsDir() bool {
-	return fi.isDir
+	return fi.Dir
 }
 
 func (fi FileInfoMock) Sys() interface{} {
