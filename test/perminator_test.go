@@ -144,9 +144,6 @@ func TestParseRule(t *testing.T) {
 		}{
 			{"*/bin x0655", p.ErrBadFileType},
 			{"*public_html/* d0999", p.ErrBadPerms},
-			// {"*public_html/* d0999", p.ErrBadPattern},
-			// I currently have no idea how to force filepath.Match to throw a syntax related error.
-			// Consider this TODO. Eventually.
 		}
 
 		for _, tt := range cases {
